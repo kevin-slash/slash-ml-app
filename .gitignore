@@ -1,0 +1,6 @@
+build
+files.txt
+controllers/__pycache__/
+**/.DS_Store
+slashmlapp/build
+**/__pycache--
