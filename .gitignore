@@ -4,3 +4,5 @@ controllers/__pycache__/
 **/.DS_Store
 slashmlapp/build
 **/__pycache--
+log_file.txt
+slashmlapp/build.sh

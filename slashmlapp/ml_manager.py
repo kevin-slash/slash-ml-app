@@ -7,6 +7,9 @@ from slashml.preprocessing.preprocessing_data  import Preprocessing
 
 
 class MLManager(object):
+    """
+     Machine learning application built on top of slashml
+    """
 
     CONFIG = {
         'root': '/Users/lion/Documents/py-workspare/slash-ml',
@@ -21,17 +24,61 @@ class MLManager(object):
         'mode': 'unicode'
     }
 
-    """ @staticmethod
-    def unzip_file():
+    @staticmethod
+    def get_results(path_textfile, list_algo, eval_setting):
+        """
+            This function performs features extraction from client's data source\
+            Train model based on extracted features
+            Get Accuracy of each algorithm (e.g: Naive Bayes, Neural Network) based on\
+             evaluation criteria e.g: LOO, 5 folds or 10 folds
+        """
 
         config = MLManager.CONFIG
 
-        text_file = 'data.zip'
-        path_to_zipfile = FileUtil.path_to_file(config, 'data/dataset/temp', text_file)
-        FileUtil.extract_zipfile(path_to_zipfile, FileUtil.join_path(config, config['text_dir']))
+        is_successful_fextract = MLManager.extract_features(path_textfile)
 
-        prepro = Preprocessing(**config)
-        dataset_matrix = prepro.loading_data(config['text_dir'], 'doc_freq', 15) """
+        # Keep track of result
+        results = {}
+
+        if is_successful_fextract:
+
+            # Start training and predicion
+            for _, algo in enumerate(list_algo):
+                if algo == 'NB':
+                    ml_algo = MachineLearning(**config).make_naivebayes()
+                elif algo == 'NN':
+                    ml_algo = MachineLearning(**config).make_naivebayes()
+                elif algo == 'DL':
+                    ml_algo = MachineLearning(**config).make_naivebayes()
+                else:
+                    ml_algo = object() # instance empty object
+
+                test_counter = 0
+                accuracy_list = []
+                while test_counter < 3:
+
+                    # Train and Get Accuracy
+                    accuracy = MLManager.train_model(ml_algo, config)
+
+                    # Increment counter
+                    test_counter = test_counter + 1
+
+                    # Keep tracking the accuracy per operation
+                    accuracy_list.append(accuracy)
+
+                if algo not in results:
+                    results[algo] = []
+
+                # Add accuracy list of each algo to dico
+                results[algo] = accuracy_list
+
+                mode = max(set(accuracy_list), key=accuracy_list.count)
+                #print("Accuracy list: ", accuracy_list)
+                #print("Average Accuracy", round(sum(accuracy_list)/test_counter, 2))
+                #print("Mode of accuracy is : ", mode)
+
+            #print('Result :', results)
+        return results
 
 
     @staticmethod
@@ -49,8 +96,8 @@ class MLManager(object):
         try:
             FileUtil.extract_zipfile(path_to_zipfile, FileUtil.join_path(config, config['text_dir']))
             FileUtil.move_file(path_to_zipfile, path_to_tempdir)
-        except OSError:
-            return False
+        except OSError as error:
+            raise Exception(error)
 
         try:
             prepro = Preprocessing(**config)
@@ -61,10 +108,10 @@ class MLManager(object):
             prepro.write_mat(path_to_filetext, dataset_matrix)
 
         except OSError as error:
-            print(error)
-            return False
-
-        return True
+            #print(error)
+            raise Exception(error)
+        else:
+            return True
 
     @staticmethod
     def train():
@@ -103,13 +150,87 @@ class MLManager(object):
 
         return accuracy
 
+    @staticmethod
+    def train_model(ml_algo, config):
+        """ Test purpose
+        """
+
+        #filename = "data.csv"
+        filename = config['dataset_filename']
+        #filename = "feature15_13.csv"
+        path_to_cvs_dataset = FileUtil.path_to_file(config, config['dataset'], filename)
+        #path_to_cvs_dataset = FileUtil.path_to_file(config, config['model_dataset'], filename)
+        dataset_matrix = FileUtil.load_csv(path_to_cvs_dataset)
+
+        #traning_model = FileUtil.load_model(CONFIG)
+        # Splite dataset into two subsets: traning_set and test_set
+        # training_set:
+            # it is used to train our model
+        # test_set:
+            # it is used to test our trained model
+        training_set, test_set = ml_algo.split_dataset(dataset_matrix, 6)
+        #_ = FileUtil.save_pickle_dataset(config, config['train_dataset'], training_set)
+        #_ = FileUtil.save_pickle_dataset(config, config['test_dataset'], test_set)
+
+        if bool(ml_algo.train_model):
+            ml_algo.load_model()
+        else:
+            _train_model = ml_algo.train(training_set)
+
+        predicts = ml_algo.predict(test_set)
+
+        #print("Training model ", _train_model)
+        #print("Predicts ", predicts)
+
+        #print("Accuracy ", naive_bayes.naive_bayes.accuracy(test_set))
+        #accuracy = 'Accuracy: {0}'.format(naive_bayes.naive_bayes.accuracy(test_set))
+        accuracy = ml_algo.accuracy(test_set)
+
+        return accuracy
+
+    @staticmethod
+    def train_get_accuracy(ml_algo, config):
+        """ Test purpose
+        """
+
+        #filename = "data.csv"
+        filename = config['dataset_filename']
+        #filename = "feature15_13.csv"
+        path_to_cvs_dataset = FileUtil.path_to_file(config, config['dataset'], filename)
+        #path_to_cvs_dataset = FileUtil.path_to_file(config, config['model_dataset'], filename)
+        dataset_matrix = FileUtil.load_csv(path_to_cvs_dataset)
+
+        #traning_model = FileUtil.load_model(CONFIG)
+        # Splite dataset into two subsets: traning_set and test_set
+        # training_set:
+            # it is used to train our model
+        # test_set:
+            # it is used to test our trained model
+        training_set, test_set = ml_algo.split_dataset(dataset_matrix, 6)
+        #_ = FileUtil.save_pickle_dataset(config, config['train_dataset'], training_set)
+        #_ = FileUtil.save_pickle_dataset(config, config['test_dataset'], test_set)
+
+        _train_model = ml_algo.train(training_set)
+        predicts = ml_algo.predict(test_set)
+
+        #print("Training model ", _train_model)
+        #print("Predicts ", predicts)
+
+        #print("Accuracy ", naive_bayes.naive_bayes.accuracy(test_set))
+        #accuracy = 'Accuracy: {0}'.format(naive_bayes.naive_bayes.accuracy(test_set))
+        accuracy = ml_algo.accuracy(test_set)
+
+        return accuracy
+
 if __name__ == "__main__":
 
     #test_machinelearning = TestMachineLearning()
 
-    #_text_file = 'data.zip'
+    _path_textfile = 'data.zip'
     #_text_file = 'data.csv'
-    _text_file = 'feature22.csv'
+    #_text_file = 'feature22.csv'
+    _list_algo = ['NB', 'NN']
 
     #print(MLManager.extract_features(_text_file))
-    print(MLManager.train())
+    #print(MLManager.train())
+    MLManager.get_results(_path_textfile, _list_algo, '')
