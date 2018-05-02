@@ -1,7 +1,9 @@
 """ This is test machine learning class
 """
 
+import os
 from time import clock
+
 
 from slashml.utils.file_util import FileUtil
 from slashmlapp.machinelearning import MachineLearning
@@ -46,7 +48,7 @@ class MLManager(object):
         config = MLManager.CONFIG
 
         # Keep track of result
-        nbr_simulations = 2
+        nbr_simulations = 1
         result_ontestingdata_accuracy = {}
         result_ontestingdata_dict = {}
 
@@ -57,8 +59,8 @@ class MLManager(object):
         formatted_final_result = {}
 
         # Perform features extraction
-        #is_successful_fextract = MLManager.extract_features(path_textfile)
-        is_successful_fextract = True
+        is_successful_fextract = MLManager.extract_features(path_textfile)
+        #is_successful_fextract = True
 
         if is_successful_fextract:
 
@@ -105,7 +107,7 @@ class MLManager(object):
             computing_time_list = []
 
             while test_counter < nbr_simulations:
-                
+
                 if algo == 'NB':
                     ml_algo = MachineLearning(**config).make_naivebayes()
                 elif algo == 'NN':
@@ -239,8 +241,16 @@ class MLManager(object):
         path_to_zipfile = FileUtil.path_to_file(config, config['text_dir'], text_file)
         path_to_tempdir = FileUtil.path_to_file(config, config['archive_dir'], text_file)
 
+        if os.path.exists(path_to_zipfile) is False:
+            # Move data.zip file to temp directory
+            FileUtil.move_file(path_to_tempdir, path_to_zipfile)
+
         try:
+
+            # Extract zip file
             FileUtil.extract_zipfile(path_to_zipfile, FileUtil.join_path(config, config['text_dir']))
+
+            # Move data.zip file to temp directory
             FileUtil.move_file(path_to_zipfile, path_to_tempdir)
         except OSError as error:
             raise Exception(error)
