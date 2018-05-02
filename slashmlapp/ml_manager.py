@@ -1,6 +1,8 @@
 """ This is test machine learning class
 """
 
+from time import clock
+
 from slashml.utils.file_util import FileUtil
 from slashmlapp.machinelearning import MachineLearning
 from slashml.preprocessing.preprocessing_data  import Preprocessing
@@ -12,6 +14,7 @@ class MLManager(object):
     """
 
     CONFIG = {
+        #'root': '/var/www/slashml2/slash-ml',
         'root': '/Users/lion/Documents/py-workspare/slash-ml',
         'model_dataset': 'data/dataset',
         'train_model': 'data/naive_bayes_model.pickle',
@@ -24,8 +27,15 @@ class MLManager(object):
         'mode': 'unicode'
     }
 
+    ON_TESTING_DATA = 'on_testing_data'
+    ON_TRAINING_DATA = 'on_training_data'
+    ACCURACY = 'accuracy'
+    TIME = 'time'
+    FIGURE_ON_TESTING_DATA = 'figure_on_testing_data'
+    FIGURE_ON_TRAINING_DATA = 'figure_on_training_data'
+
     @staticmethod
-    def get_results(path_textfile, list_algo, eval_setting):
+    def get_results(path_textfile, algo_list, eval_setting):
         """
             This function performs features extraction from client's data source\
             Train model based on extracted features
@@ -35,15 +45,67 @@ class MLManager(object):
 
         config = MLManager.CONFIG
 
-        is_successful_fextract = MLManager.extract_features(path_textfile)
-
         # Keep track of result
-        results = {}
+        nbr_simulations = 2
+        result_ontestingdata_accuracy = {}
+        result_ontestingdata_dict = {}
+
+        # result of on training data
+        result_ontrainingdata_accuracy = {}
+        result_ontrainingdata_dict = {}
+
+        formatted_final_result = {}
+
+        # Perform features extraction
+        #is_successful_fextract = MLManager.extract_features(path_textfile)
+        is_successful_fextract = True
 
         if is_successful_fextract:
 
-            # Start training and predicion
-            for _, algo in enumerate(list_algo):
+            # Peform prediction and operation on testing data
+            result_ontestingdata_accuracy, result_ontestingdata_dict = \
+            MLManager.execute_ontestingdata(algo_list, config, nbr_simulations)
+
+            # Peform training and prediction on training data
+            result_ontrainingdata_accuracy, result_ontrainingdata_dict = \
+            MLManager.execute_ontrainingdata(algo_list, config, nbr_simulations)
+
+            # Structure data in dictionary
+            formatted_final_result[MLManager.ON_TESTING_DATA] = result_ontestingdata_dict
+            formatted_final_result[MLManager.FIGURE_ON_TESTING_DATA] = result_ontestingdata_accuracy
+
+            # Structure results of training data
+            formatted_final_result[MLManager.ON_TRAINING_DATA] = result_ontrainingdata_dict
+            formatted_final_result[MLManager.FIGURE_ON_TRAINING_DATA] = result_ontrainingdata_accuracy
+
+        #return result_ontrainingdata_accuracy, result_ontrainingdata_dict
+        return formatted_final_result
+
+    @staticmethod
+    def execute_ontestingdata(algo_list, config, nbr_simulations):
+        """ Peform training and prediction using on training data method
+        """
+
+        # Keep track of result
+        result_data_accuracy = {}
+        result_ontestingdata_dict = {}
+        # Start training and predicion
+        for _, algo in enumerate(algo_list):
+            ''' if algo == 'NB':
+                ml_algo = MachineLearning(**config).make_naivebayes()
+            elif algo == 'NN':
+                ml_algo = MachineLearning(**config).make_naivebayes()
+            elif algo == 'DL':
+                ml_algo = MachineLearning(**config).make_naivebayes()
+            else:
+                ml_algo = object() # instance empty object '''
+
+            test_counter = 0
+            accuracy_list = []
+            computing_time_list = []
+
+            while test_counter < nbr_simulations:
+                
                 if algo == 'NB':
                     ml_algo = MachineLearning(**config).make_naivebayes()
                 elif algo == 'NN':
@@ -53,32 +115,117 @@ class MLManager(object):
                 else:
                     ml_algo = object() # instance empty object
 
-                test_counter = 0
-                accuracy_list = []
-                while test_counter < 3:
+                # Start time
+                #start = clock()
 
-                    # Train and Get Accuracy
-                    accuracy = MLManager.train_model(ml_algo, config)
+                # Train and Get Accuracy
+                accuracy, elapsed = MLManager.train_model(ml_algo, MLManager.execute_ontestingdata, config)
 
-                    # Increment counter
-                    test_counter = test_counter + 1
+                # Calcuate computing time
+                #end = clock()
+                #elapsed = end - start
 
-                    # Keep tracking the accuracy per operation
-                    accuracy_list.append(accuracy)
+                # Increment counter
+                test_counter = test_counter + 1
 
-                if algo not in results:
-                    results[algo] = []
+                # Keep tracking the accuracy per operation
+                accuracy_list.append(accuracy)
+                computing_time_list.append(elapsed)
 
-                # Add accuracy list of each algo to dico
-                results[algo] = accuracy_list
+            if algo not in result_data_accuracy:
+                #result_data_accuracy[algo] = []
+                result_data_accuracy[algo] = round(sum(accuracy_list)/len(accuracy_list), 2)
 
-                mode = max(set(accuracy_list), key=accuracy_list.count)
-                #print("Accuracy list: ", accuracy_list)
-                #print("Average Accuracy", round(sum(accuracy_list)/test_counter, 2))
-                #print("Mode of accuracy is : ", mode)
+            # Add accuracy list of each algo to dico
+            #result_data_accuracy[algo] = accuracy_list
 
-            #print('Result :', results)
-        return results
+            # Format accuracy and computing time in dict format
+            _accuracy_time_dict = MLManager.format_result_todict(accuracy_list, computing_time_list)
+            # Add result_dict to corresponding algo ex: NB, NN
+            result_ontestingdata_dict[algo] = _accuracy_time_dict
+
+        return result_data_accuracy, result_ontestingdata_dict
+
+    @staticmethod
+    def execute_ontrainingdata(algo_list, config, nbr_simulations):
+        """ Peform training and prediction using on training data method
+        """
+
+        # Keep track of result
+        result_data_accuracy = {}
+        result_ontestingdata_dict = {}
+        # Start training and predicion
+        for _, algo in enumerate(algo_list):
+            ''' if algo == 'NB':
+                ml_algo = MachineLearning(**config).make_naivebayes()
+            elif algo == 'NN':
+                ml_algo = MachineLearning(**config).make_naivebayes()
+            elif algo == 'DL':
+                ml_algo = MachineLearning(**config).make_naivebayes()
+            else:
+                ml_algo = object() # instance empty object '''
+
+            test_counter = 0
+            accuracy_list = []
+            computing_time_list = []
+
+            while test_counter < nbr_simulations:
+
+                if algo == 'NB':
+                    ml_algo = MachineLearning(**config).make_naivebayes()
+                elif algo == 'NN':
+                    ml_algo = MachineLearning(**config).make_naivebayes()
+                elif algo == 'DL':
+                    ml_algo = MachineLearning(**config).make_naivebayes()
+                else:
+                    ml_algo = object() # instance empty object
+
+                # Start time
+                #start = clock()
+
+                # Train and Get Accuracy
+                accuracy, elapsed = MLManager.train_model(ml_algo, MLManager.execute_ontrainingdata, config)
+
+                # Calcuate computing time
+                #end = clock()
+                #elapsed = end - start
+
+                # Increment counter
+                test_counter = test_counter + 1
+                # Keep tracking the accuracy per operation
+                accuracy_list.append(accuracy)
+                computing_time_list.append(elapsed)
+
+            if algo not in result_data_accuracy:
+                #result_data_accuracy[algo] = []
+                result_data_accuracy[algo] = round(sum(accuracy_list)/len(accuracy_list), 2)
+
+            # Add accuracy list of each algo to dico
+            #result_data_accuracy[algo] = accuracy_list
+
+            # Format accuracy and computing time in dict format
+            _accuracy_time_dict = MLManager.format_result_todict(accuracy_list, computing_time_list)
+            # Add result_dict to corresponding algo ex: NB, NN
+            result_ontestingdata_dict[algo] = _accuracy_time_dict
+
+        return result_data_accuracy, result_ontestingdata_dict
+
+
+    @staticmethod
+    def format_result_todict(accuracy_list, computingtime_list):
+        """ Format result in a dictionary of two elements
+            - Accuracy
+            - Time
+        """
+
+        result = {}
+        avg_accuracy = round(sum(accuracy_list)/len(accuracy_list), 2)
+        avg_computingtime = round(sum(computingtime_list)/len(computingtime_list), 2)
+
+        result[MLManager.ACCURACY] = avg_accuracy
+        result[MLManager.TIME] = avg_computingtime
+
+        return result
 
 
     @staticmethod
@@ -89,7 +236,6 @@ class MLManager(object):
         """
 
         config = MLManager.CONFIG
-        #text_file = 'data.zip'
         path_to_zipfile = FileUtil.path_to_file(config, config['text_dir'], text_file)
         path_to_tempdir = FileUtil.path_to_file(config, config['archive_dir'], text_file)
 
@@ -139,10 +285,7 @@ class MLManager(object):
         #_ = FileUtil.save_pickle_dataset(config, config['test_dataset'], test_set)
 
         _train_model = naive_bayes.train(training_set)
-        predicts = naive_bayes.predict(test_set)
-
-        #print("Training model ", _train_model)
-        #print("Predicts ", predicts)
+        _ = naive_bayes.predict(test_set)
 
         #print("Accuracy ", naive_bayes.naive_bayes.accuracy(test_set))
         #accuracy = 'Accuracy: {0}'.format(naive_bayes.naive_bayes.accuracy(test_set))
@@ -151,9 +294,13 @@ class MLManager(object):
         return accuracy
 
     @staticmethod
-    def train_model(ml_algo, config):
+    def train_model(ml_algo, operation_mode, config):
         """ Test purpose
         """
+
+        # Trace computing time of this train and prediction process
+        # Start time
+        start = clock()
 
         #filename = "data.csv"
         filename = config['dataset_filename']
@@ -168,25 +315,29 @@ class MLManager(object):
             # it is used to train our model
         # test_set:
             # it is used to test our trained model
-        training_set, test_set = ml_algo.split_dataset(dataset_matrix, 6)
-        #_ = FileUtil.save_pickle_dataset(config, config['train_dataset'], training_set)
-        #_ = FileUtil.save_pickle_dataset(config, config['test_dataset'], test_set)
+        if operation_mode == MLManager.execute_ontestingdata:
+            training_set, test_set = ml_algo.split_dataset(dataset_matrix, 6)
+        else:
+            training_set, test_set = ml_algo.extract_testingdata_dataset(dataset_matrix, 6)
 
-        if bool(ml_algo.train_model):
+        ''' if bool(ml_algo.train_model):
             ml_algo.load_model()
         else:
-            _train_model = ml_algo.train(training_set)
+            _train_model = ml_algo.train(training_set) '''
 
-        predicts = ml_algo.predict(test_set)
-
-        #print("Training model ", _train_model)
-        #print("Predicts ", predicts)
+        # train and predict
+        _train_model = ml_algo.train(training_set)
+        _ = ml_algo.predict(test_set)
 
         #print("Accuracy ", naive_bayes.naive_bayes.accuracy(test_set))
         #accuracy = 'Accuracy: {0}'.format(naive_bayes.naive_bayes.accuracy(test_set))
         accuracy = ml_algo.accuracy(test_set)
 
-        return accuracy
+        # Calcuate computing time
+        end = clock()
+        elapsed = end - start
+
+        return accuracy, elapsed
 
     @staticmethod
     def train_get_accuracy(ml_algo, config):
@@ -216,8 +367,6 @@ class MLManager(object):
         #print("Training model ", _train_model)
         #print("Predicts ", predicts)
 
-        #print("Accuracy ", naive_bayes.naive_bayes.accuracy(test_set))
-        #accuracy = 'Accuracy: {0}'.format(naive_bayes.naive_bayes.accuracy(test_set))
         accuracy = ml_algo.accuracy(test_set)
 
         return accuracy
@@ -233,4 +382,8 @@ if __name__ == "__main__":
 
     #print(MLManager.extract_features(_text_file))
     #print(MLManager.train())
-    MLManager.get_results(_path_textfile, _list_algo, '')
+    #_result_data_accuracy, _result_ontrainingdata_dict = MLManager.get_results(_path_textfile, _list_algo, '')
+    results = MLManager.get_results(_path_textfile, _list_algo, '')
+
+    #print('accuracy %s, on testin data %s' %(_result_data_accuracy, _result_ontrainingdata_dict))
+    print('accuracy %s' %(results))
