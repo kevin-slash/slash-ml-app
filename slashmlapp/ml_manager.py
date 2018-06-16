@@ -9,6 +9,7 @@ from time import clock
 from slashml.utils.file_util import FileUtil
 from slashml.naive_bayes.naive_bayes_template import NaiveBayesTemplate
 from slashml.algorithm.neural_network.main_ann import MainANN
+from slashml.algorithm.decision_tree.main_dtc import DecisionTreeClassifier
 from slashmlapp.machinelearning import MachineLearning
 
 from slashml.preprocessing.preprocessing_data  import Preprocessing
@@ -71,8 +72,8 @@ class MLManager(object):
 
         logging.info('Start ML')
         # Perform features extraction
-        #is_successful_fextract = MLManager.extract_features(path_textfile)
-        is_successful_fextract = True
+        is_successful_fextract = MLManager.extract_features(path_textfile)
+        #is_successful_fextract = True
         formatted_final_result['text_extract_time'] = time.time() - start_time
 
         if is_successful_fextract:
@@ -129,8 +130,8 @@ class MLManager(object):
                     ml_algo = MachineLearning(**config).make_naivebayes()
                 elif algo == 'NN':
                     ml_algo = MachineLearning(**config).make_nearalnetworks()
-                elif algo == 'DL':
-                    ml_algo = MachineLearning(**config).make_naivebayes()
+                elif algo == 'DT':
+                    ml_algo = MachineLearning(**config).make_decisiontree()
                 else:
                     ml_algo = object() # instance empty object
 
@@ -180,8 +181,8 @@ class MLManager(object):
                     ml_algo = MachineLearning(**config).make_naivebayes()
                 elif algo == 'NN':
                     ml_algo = MachineLearning(**config).make_nearalnetworks()
-                elif algo == 'DL':
-                    ml_algo = MachineLearning(**config).make_naivebayes()
+                elif algo == 'DT':
+                    ml_algo = MachineLearning(**config).make_decisiontree()
                 else:
                     ml_algo = object() # instance empty object
 
@@ -292,32 +293,9 @@ class MLManager(object):
 
             dataset_matrix = FileUtil.load_csv_np(path_to_cvs_dataset)
             accuracy, elapsed = MLManager.train_model_ann(ml_algo, operation_mode, dataset_matrix)
-        else:
-            accuracy, elapsed = None, None
-
-
-        ''' #traning_model = FileUtil.load_model(CONFIG)
-        # Splite dataset into two subsets: traning_set and test_set
-        # training_set:
-            # it is used to train our model
-        # test_set:
-            # it is used to test our trained model
-        if operation_mode == MLManager.execute_ontestingdata:
-            training_set, test_set = ml_algo.split_dataset(dataset_matrix, 6)
-        else:
-            training_set, test_set = ml_algo.extract_testingdata_dataset(dataset_matrix, 6)
-
-        if bool(ml_algo.train_model):
-            ml_algo.load_model()
-        else:
-            _train_model = ml_algo.train(training_set)
-
-        # train and predict
-        _train_model = ml_algo.train(training_set)
-        _ = ml_algo.predict(test_set)
-
-        # Calculate accuracy
-        accuracy = ml_algo.accuracy(test_set) '''
+        elif isinstance(ml_algo, DecisionTreeClassifier):
+            dataset_matrix = FileUtil.load_csv_np(path_to_cvs_dataset)
+            accuracy, elapsed = MLManager.train_model_dtc(ml_algo, operation_mode, dataset_matrix)
 
         # Calcuate computing time
         #end = clock()
@@ -423,6 +401,42 @@ class MLManager(object):
 
 
     @staticmethod
+    def train_model_dtc(ml_algo, operation_mode, dataset_matrix):
+        """ Test purpose
+        """
+
+        # Trace computing time of this train and prediction process
+        # Start time
+        start = clock()
+
+        #traning_model = FileUtil.load_model(CONFIG)
+        # Splite dataset into two subsets: traning_set and test_set
+        # training_set:
+            # it is used to train our model
+        # test_set:
+            # it is used to test our trained model
+        tree = DecisionTreeClassifier(criterion='entropy', prune='depth', max_depth=50)
+        if operation_mode == MLManager.execute_ontestingdata:
+            X_train, X_test, y_train, y_test = tree.train_test_split(dataset_matrix, n_test_by_class=3)
+
+        else:
+            X_train, X_test, y_train, y_test = tree.train_test_extract(dataset_matrix, n_test_by_class=3)
+
+        # train and predict
+        tree.train(X_train, y_train)
+        pred = tree.predict(X_test)
+
+        # Calculate accuracy
+        accuracy = tree.accuracy_metric(y_test, pred)
+
+        # Calcuate computing time
+        end = clock()
+        elapsed = end - start
+
+        return accuracy, elapsed
+
+
+    @staticmethod
     def train_get_accuracy(ml_algo, config):
         """ Test purpose
         """
@@ -458,7 +472,8 @@ if __name__ == "__main__":
     _path_textfile = 'data.zip'
     #_text_file = 'data.csv'
     #_text_file = 'feature22.csv'
-    _list_algo = ['NB', 'NN']
+    _list_algo = ['NB', 'NN', 'DT']
+    #_list_algo = ['DT']
 
     #print(MLManager.extract_features(_text_file))
     #print(MLManager.train())
