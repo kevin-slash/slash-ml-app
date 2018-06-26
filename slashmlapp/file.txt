@@ -1,0 +1,7 @@
+/usr/local/lib/python3.6/site-packages/slashmlapp/__init__.py
+/usr/local/lib/python3.6/site-packages/slashmlapp/machinelearning.py
+/usr/local/lib/python3.6/site-packages/slashmlapp/ml_manager.py
+/usr/local/lib/python3.6/site-packages/slashmlapp/__pycache__/__init__.cpython-36.pyc
+/usr/local/lib/python3.6/site-packages/slashmlapp/__pycache__/machinelearning.cpython-36.pyc
+/usr/local/lib/python3.6/site-packages/slashmlapp/__pycache__/ml_manager.cpython-36.pyc
+/usr/local/lib/python3.6/site-packages/slashmlapp-0.0.0-py3.6.egg-info
