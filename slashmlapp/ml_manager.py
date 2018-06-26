@@ -47,9 +47,9 @@ class MLManager(object):
     mean_exec_time = np.mean(np.array(result_exec_time))
 
     return {
-      'acc': mean_acc,
-      'acc_train': mean_acc_train,
-      'exec_time': mean_exec_time
+      'acc': round(mean_acc,2),
+      'acc_train': round(mean_acc_train,2),
+      'exec_time': round(mean_exec_time,2)
     }
 
   @staticmethod
@@ -105,8 +105,8 @@ class MLManager(object):
       total_execution_time = time.time() - whole_st
 
       result = {
-        'com_time': total_execution_time,
-        'text_extract_time': prepro_time,
+        'com_time': round(total_execution_time,2),
+        'text_extract_time': round(prepro_time,2),
         'figure_on_testing_data': {
           'NB': nb_result['acc'],
           'NN': nn_result['acc'],
