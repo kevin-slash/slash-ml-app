@@ -118,14 +118,14 @@ class MLManager(object):
           'DT': dt_result['acc_train'],
         },
         'on_testing_data': {
-          'NB': {'accurate': nb_result['acc'], 'time': nb_result['exec_time']},
-          'NN': {'accurate': nn_result['acc'], 'time': nn_result['exec_time']},
-          'DT': {'accurate': dt_result['acc'], 'time': dt_result['exec_time']},
+          'NB': {'accuracy': nb_result['acc'], 'time': nb_result['exec_time']},
+          'NN': {'accuracy': nn_result['acc'], 'time': nn_result['exec_time']},
+          'DT': {'accuracy': dt_result['acc'], 'time': dt_result['exec_time']},
         },
         'on_training_data': {
-          'NB': {'accurate': nb_result['acc_train'], 'time': nb_result['exec_time']},
-          'NN': {'accurate': nn_result['acc_train'], 'time': nn_result['exec_time']},
-          'DT': {'accurate': dt_result['acc_train'], 'time': dt_result['exec_time']},
+          'NB': {'accuracy': nb_result['acc_train'], 'time': nb_result['exec_time']},
+          'NN': {'accuracy': nn_result['acc_train'], 'time': nn_result['exec_time']},
+          'DT': {'accuracy': dt_result['acc_train'], 'time': dt_result['exec_time']},
         }
       }
 
