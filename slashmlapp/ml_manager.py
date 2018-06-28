@@ -1,7 +1,6 @@
 """ This is test machine learning class
 """
 
-
 import sys, os
 import argparse
 import time
@@ -13,6 +12,7 @@ from khmerml.utils.file_util import FileUtil
 from khmerml.utils.bg_colors import Bgcolors
 
 import logging
+
 class MLManager(object):
   """ 
     Machine learning application built on top of slashml
@@ -47,9 +47,9 @@ class MLManager(object):
     mean_exec_time = np.mean(np.array(result_exec_time))
 
     return {
-      'acc': round(mean_acc,2),
-      'acc_train': round(mean_acc_train,2),
-      'exec_time': round(mean_exec_time,2)
+      'acc': round(mean_acc, 2),
+      'acc_train': round(mean_acc_train, 2),
+      'exec_time': round(mean_exec_time, 2)
     }
 
   @staticmethod
@@ -91,14 +91,19 @@ class MLManager(object):
       prepro_time = time.time() - whole_st
 
       ml = MachineLearning(**config)
+
+      # Test
+      dt_algo = ml.DecisionTree(criterion='gini', prune='depth', max_depth=30, min_criterion=0.05)
+      dt_result = MLManager.perform_algo(ml, dt_algo, dataset_sample)
+
       # choose your algorithm
       nb_algo = ml.NiaveBayes()
       nn_algo = ml.NeuralNetwork(hidden_layer_sizes=(250, 100), learning_rate=0.012, momentum=0.5, random_state=0, max_iter=200, activation='tanh')
-      dt_algo = ml.DecisionTree(criterion='gini', prune='depth', max_depth=30, min_criterion=0.05)
+      #dt_algo = ml.DecisionTree(criterion='gini', prune='depth', max_depth=30, min_criterion=0.05)
 
       nb_result = MLManager.perform_algo(ml, nb_algo, dataset_sample)
       nn_result = MLManager.perform_algo(ml, nn_algo, dataset_sample)
-      dt_result = MLManager.perform_algo(ml, dt_algo, dataset_sample)
+      #dt_result = MLManager.perform_algo(ml, dt_algo, dataset_sample)
 
       print(nb_result, nn_result, dt_result)
 
@@ -131,6 +136,54 @@ class MLManager(object):
 
     return result
 
+
+  @staticmethod
+  def classify(config, text):
+    """ 
+    """
+
+    # Preprocess: transform text to frequency
+    prepro = Preprocessing(**config)
+    mat = prepro.loading_single_doc(text, 'doc_freq', 1)
+
+    # Initialize only 3 algorithms at the moment
+    ml = MachineLearning(**config)
+
+    # Perform prediction
+    # Naive Bayes
+    nb_algo = ml.NiaveBayes()
+    nb_model = nb_algo.load_model()
+    nb_prediction = nb_algo.predict(nb_model, [mat])
+    
+    # ANN
+    nn_algo = ml.NeuralNetwork(hidden_layer_sizes=(250, 100), learning_rate=0.012, momentum=0.5, random_state=0, max_iter=200, activation='tanh')
+    nn_model = nn_algo.load_model()
+    nn_prediction = nn_algo.predict(nn_model, [mat])
+
+    # DT
+    dt_algo = ml.DecisionTree(criterion='gini', prune='depth', max_depth=30, min_criterion=0.05)
+    dt_model = dt_algo.load_model()
+    #norm_mat = prepro.normalize_dataset(np.array([mat])) # use with decision tree only
+    norm_mat = prepro.normalize_dataset(np.array([mat])) # use with decision tree only
+    #dt_prediction = dt_algo.predict(dt_model, norm_mat)
+    dt_prediction = dt_algo.predict(dt_model, np.array([mat]))
+
+    # Get the best labe outputed by BN, NN, DT
+    nb_label = ml.to_label(nb_prediction, 'data/bag_of_words/label_match.pickle')
+    nn_label = ml.to_label(nn_prediction, 'data/bag_of_words/label_match.pickle')
+    dt_label = ml.to_label(dt_prediction, 'data/bag_of_words/label_match.pickle')
+
+    # Prepare results of:
+    # (1) Naive Bayes (2) Neural Network (3) Decision Tree  
+    result = {
+      'NB': nb_label,
+      'NN': nn_label,
+      'DT': dt_label
+    }
+
+    return result
+
+
   @staticmethod
   def extract_features(text_file, config):
     """ this function can be used to extract features \
@@ -157,17 +210,45 @@ class MLManager(object):
     else:
       return True
 
-if __name__ == "__main__":
+
+  @staticmethod
+  def test_train_model():
+    """ this function can be used to extract features \
+    in a format supported by machine learning \
+    algorithms from datasets consisting of formats such as text.
+    """
 
     _path_textfile = 'chatbot.zip'
-    #_path_textfile = 'data.zip'
-    _list_algo = ['DT']
-
-    #print(MLManager.extract_features(_text_file))
-    #print(MLManager.train())
-    #_result_data_accuracy, _result_ontrainingdata_dict = MLManager.get_results(_path_textfile, _list_algo, '')
+    _list_algo = ""
     start_time = time.time() 
     results = MLManager.get_results(_path_textfile, _list_algo, '', start_time)
 
-    #print('accuracy %s, on testin data %s' %(_result_data_accuracy, _result_ontrainingdata_dict))
     print('accuracy %s' %(results))
+
+
+  @staticmethod
+  def test_prediction():
+    """ Start predicting
+    """
+
+    # Basic configuration
+    config = {
+      'text_dir': 'data/dataset/chatbot',
+      'dataset': 'data/matrix',
+      'bag_of_words': 'data/bag_of_words',
+      'train_model': 'data/model/train.model',
+    }
+
+    #text = 'sorry i don\'t understand what you are saying, tell me more!'
+    text = 'How are you.'
+    expected_result = MLManager.classify(config, text)
+    print('Output', expected_result)
+
+
+if __name__ == "__main__":
+
+  # Train model
+  #MLManager.test_train_model()
+
+  # Test input text
+  MLManager.test_prediction()
