@@ -83,6 +83,10 @@ class MLManager(object):
       prepro = Preprocessing(**config)
       # preposessing
       dataset_matrix = prepro.loading_data(config['text_dir'], 'doc_freq', 'all', 1)
+
+      # Remove sub-directory from "data/dataset/text"
+      FileUtil.remove_file(config['text_dir'], ignore_errors=True)
+
       #load dataset from file (feature data)
       filename = "doc_freq_1.csv"
       dataset_path = FileUtil.dataset_path(config, filename)
@@ -248,7 +252,7 @@ class MLManager(object):
 if __name__ == "__main__":
 
   # Train model
-  #MLManager.test_train_model()
+  MLManager.test_train_model()
 
   # Test input text
-  MLManager.test_prediction()
+  #MLManager.test_prediction()
