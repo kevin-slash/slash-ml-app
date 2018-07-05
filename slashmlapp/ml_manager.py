@@ -72,7 +72,6 @@ class MLManager(object):
     #logfile = '/Users/lion/Documents/py-workspare/slash-ml/logfile.log'
     #logging.basicConfig(filename=logfile, level=logging.DEBUG)
 
-    #logging.info('Start ML')
     # Perform features extraction
     is_successful_fextract = MLManager.extract_features(path_textfile, config)
     #is_successful_fextract = True
