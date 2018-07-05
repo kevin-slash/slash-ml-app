@@ -14,7 +14,7 @@ from khmerml.utils.bg_colors import Bgcolors
 import logging
 
 class MLManager(object):
-  """ 
+  """
     Machine learning application built on top of slashml
   """
 
@@ -53,7 +53,7 @@ class MLManager(object):
     }
 
   @staticmethod
-  def get_results(path_textfile, algo_list, eval_setting, start_time):
+  def get_results(path_textfile, params, eval_setting, start_time):
     """
       This function performs features extraction from client's data source\
       Train model based on extracted features
@@ -82,13 +82,15 @@ class MLManager(object):
 
       prepro = Preprocessing(**config)
       # preposessing
-      dataset_matrix = prepro.loading_data(config['text_dir'], 'doc_freq', 'all', 1)
+      params_prepro = params['PR']
+      dataset_matrix = prepro.loading_data(config['text_dir'], params_prepro['method'],\
+       'all', params_prepro['threshold'])
 
       # Remove sub-directory from "data/dataset/text"
       FileUtil.remove_file(config['text_dir'], ignore_errors=True)
 
       #load dataset from file (feature data)
-      filename = "doc_freq_1.csv"
+      filename = "doc_freq_" + str(params_prepro['threshold']) + ".csv"
       dataset_path = FileUtil.dataset_path(config, filename)
       dataset_sample = FileUtil.load_csv(dataset_path)
 
@@ -97,25 +99,33 @@ class MLManager(object):
       ml = MachineLearning(**config)
 
       # Test
-      dt_algo = ml.DecisionTree(criterion='gini', prune='depth', max_depth=30, min_criterion=0.05)
-      dt_result = MLManager.perform_algo(ml, dt_algo, dataset_sample)
+      #dt_algo = ml.DecisionTree(criterion='gini', prune='depth', max_depth=30, min_criterion=0.05)
+      #dt_result = MLManager.perform_algo(ml, dt_algo, dataset_sample)
 
       # choose your algorithm
       nb_algo = ml.NiaveBayes()
-      nn_algo = ml.NeuralNetwork(hidden_layer_sizes=(250, 100), learning_rate=0.012, momentum=0.5, random_state=0, max_iter=200, activation='tanh')
-      #dt_algo = ml.DecisionTree(criterion='gini', prune='depth', max_depth=30, min_criterion=0.05)
+
+      params_nn = params['NN']
+      nn_algo = ml.NeuralNetwork(hidden_layer_sizes=params_nn['hidden_layer_sizes'],\
+       learning_rate=params_nn['learning_rate'], momentum=params_nn['momentum'],\
+        random_state=params_nn['random_state'], max_iter=params_nn['max_iter'],\
+         activation=params_nn['activation'])
+
+      params_dt = params['DT']
+      dt_algo = ml.DecisionTree(criterion=params_dt['criterion'], prune='depth',\
+       max_depth=params_dt['max_depth'], min_criterion=params_dt['min_criterion'])
 
       nb_result = MLManager.perform_algo(ml, nb_algo, dataset_sample)
       nn_result = MLManager.perform_algo(ml, nn_algo, dataset_sample)
-      #dt_result = MLManager.perform_algo(ml, dt_algo, dataset_sample)
+      dt_result = MLManager.perform_algo(ml, dt_algo, dataset_sample)
 
       print(nb_result, nn_result, dt_result)
 
       total_execution_time = time.time() - whole_st
 
       result = {
-        'com_time': round(total_execution_time,2),
-        'text_extract_time': round(prepro_time,2),
+        'com_time': round(total_execution_time, 2),
+        'text_extract_time': round(prepro_time, 2),
         'figure_on_testing_data': {
           'NB': nb_result['acc'],
           'NN': nn_result['acc'],
@@ -143,7 +153,7 @@ class MLManager(object):
 
   @staticmethod
   def classify(config, text):
-    """ 
+    """ Text classification
     """
 
     # Preprocess: transform text to frequency
@@ -158,7 +168,7 @@ class MLManager(object):
     nb_algo = ml.NiaveBayes()
     nb_model = nb_algo.load_model()
     nb_prediction = nb_algo.predict(nb_model, [mat])
-    
+
     # ANN
     nn_algo = ml.NeuralNetwork(hidden_layer_sizes=(250, 100), learning_rate=0.012, momentum=0.5, random_state=0, max_iter=200, activation='tanh')
     nn_model = nn_algo.load_model()
@@ -168,7 +178,7 @@ class MLManager(object):
     dt_algo = ml.DecisionTree(criterion='gini', prune='depth', max_depth=30, min_criterion=0.05)
     dt_model = dt_algo.load_model()
     #norm_mat = prepro.normalize_dataset(np.array([mat])) # use with decision tree only
-    norm_mat = prepro.normalize_dataset(np.array([mat])) # use with decision tree only
+    #norm_mat = prepro.normalize_dataset(np.array([mat])) # use with decision tree only
     #dt_prediction = dt_algo.predict(dt_model, norm_mat)
     dt_prediction = dt_algo.predict(dt_model, np.array([mat]))
 
@@ -178,7 +188,7 @@ class MLManager(object):
     dt_label = ml.to_label(dt_prediction, 'data/bag_of_words/label_match.pickle')
 
     # Prepare results of:
-    # (1) Naive Bayes (2) Neural Network (3) Decision Tree  
+    # (1) Naive Bayes (2) Neural Network (3) Decision Tree
     result = {
       'NB': nb_label,
       'NN': nn_label,
