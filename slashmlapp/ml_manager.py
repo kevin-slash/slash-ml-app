@@ -53,7 +53,7 @@ class MLManager(object):
     }
 
   @staticmethod
-  def get_results(path_textfile, params, eval_setting, start_time):
+  def get_results(path_textfile, params, config, start_time):
     """
       This function performs features extraction from client's data source\
       Train model based on extracted features
@@ -61,13 +61,8 @@ class MLManager(object):
       evaluation criteria e.g: LOO, 5 folds or 10 folds
     """
 
-    config = {
-      'text_dir': 'data/dataset/text',
-      'dataset': 'data/matrix',
-      'bag_of_words': 'data/bag_of_words',
-      'train_model': 'data/model/train.model',
-      'archive_dir': 'data/dataset/temp'
-    }
+    # Store config for next use
+    config = config
 
     #logfile = '/Users/lion/Documents/py-workspare/slash-ml/logfile.log'
     #logging.basicConfig(filename=logfile, level=logging.DEBUG)
@@ -80,6 +75,7 @@ class MLManager(object):
       whole_st = time.time()
 
       prepro = Preprocessing(**config)
+
       # preposessing
       params_prepro = params['PR']
       dataset_matrix = prepro.loading_data(config['text_dir'], params_prepro['method'],\
@@ -96,10 +92,6 @@ class MLManager(object):
       prepro_time = time.time() - whole_st
 
       ml = MachineLearning(**config)
-
-      # Test
-      #dt_algo = ml.DecisionTree(criterion='gini', prune='depth', max_depth=30, min_criterion=0.05)
-      #dt_result = MLManager.perform_algo(ml, dt_algo, dataset_sample)
 
       # choose your algorithm
       nb_algo = ml.NiaveBayes()
@@ -157,7 +149,7 @@ class MLManager(object):
 
     # Preprocess: transform text to frequency
     prepro = Preprocessing(**config)
-    mat = prepro.loading_single_doc(text, 'doc_freq', 1)
+    mat = prepro.loading_single_doc(text, 'doc_freq', config['threshold'])
 
     # Initialize only 3 algorithms at the moment
     ml = MachineLearning(**config)
@@ -169,7 +161,8 @@ class MLManager(object):
     nb_prediction = nb_algo.predict(nb_model, [mat])
 
     # ANN
-    nn_algo = ml.NeuralNetwork(hidden_layer_sizes=(250, 100), learning_rate=0.012, momentum=0.5, random_state=0, max_iter=200, activation='tanh')
+    nn_algo = ml.NeuralNetwork(hidden_layer_sizes=(250, 100),\
+     learning_rate=0.012, momentum=0.5, random_state=0, max_iter=200, activation='tanh')
     nn_model = nn_algo.load_model()
     nn_prediction = nn_algo.predict(nn_model, [mat])
 
@@ -182,9 +175,9 @@ class MLManager(object):
     dt_prediction = dt_algo.predict(dt_model, np.array([mat]))
 
     # Get the best labe outputed by BN, NN, DT
-    nb_label = ml.to_label(nb_prediction, 'data/bag_of_words/label_match.pickle')
-    nn_label = ml.to_label(nn_prediction, 'data/bag_of_words/label_match.pickle')
-    dt_label = ml.to_label(dt_prediction, 'data/bag_of_words/label_match.pickle')
+    nb_label = ml.to_label(nb_prediction, config['label_match'])
+    nn_label = ml.to_label(nn_prediction, config['label_match'])
+    dt_label = ml.to_label(dt_prediction, config['label_match'])
 
     # Prepare results of:
     # (1) Naive Bayes (2) Neural Network (3) Decision Tree
